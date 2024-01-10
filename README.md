@@ -40,8 +40,7 @@
   
  데이터의 전처리 과정은 주로 각 화에 종종 들어있는 '작가의 말'이나 소설의 주요 내용과는 관계없는 특수 문자나 이모티콘, 장면을 구분하는 문자들을 중점적으로 제거하였다. 
 
-<pre>
-<code>
+```python
 #해야할 것 - 텍스트 가져오고 싶은 작품 1화 주소 붙여넣기. 회수에 맞게 숫자 조정하기. 실행하기.
 from urllib.request import urlopen
 import requests
@@ -174,8 +173,7 @@ for i in range(len(mainText)):
     data = mainText[i]
     f.write(data)
 f.close()
-</code>
-</pre>
+```
 
 ### **[4] 구현 내용 설명**
 
@@ -205,8 +203,7 @@ f.close()
  맞춤법 검사에 사용한 것은 selenium을 통해 '네이버 맞춤법 검사기'에 접근하는 것이다. 한 번에 교정할 수 있는 글자가 500자로 한정이 되어 있었기 때문에, 텍스트들을 500자씩 나누어 준 후 검사를 시행했다. 500자씩 나누는 과정에서, 단어와 단어 중간에서 끊기면 맞춤법 검사에 차질이 생기기 때문에 이를 고려하여 코드를 작성하였다. <br>
   ex) '게임을 시작했읍니다."가 '게임을 시작했'과 '읍니다.'로 나뉘는 경우, 정확한 수정이 불가능하다. 따라서 '게임을', '시작했읍니다.'로 나뉠 수 있도록 유의하였다. 
   
-<pre>
-<code>
+```python
 #1. total.txt -> 맞춤법 수정된 fixed_total.txt
 
 from selenium import webdriver
@@ -261,15 +258,12 @@ for fix in fix_list :
 fp = open("fixed.txt",'w',encoding='utf-8')
 fp.write(new_str)
 fp.close()
-</code>
-</pre>
-
+```
 #### 3. 텍스트 정제 및 하나의 의미 단락으로 구분
 
  일정한 간격과 단락으로 텍스트를 정제하였다. 모델을 학습시키는 과정에서 문단 단위로 진행 할 예정이다. 
  
-<pre>
-<code>
+```python
 filename = "/content/drive/Shareddrives/소융개론 텀프로젝트/fixed.txt"
 with io.open(filename, encoding = 'utf-8') as f :
     text_f = f.read()
@@ -325,15 +319,13 @@ for (idx, sentence) in enumerate(sentence_list):
         if (num == maxi):
             temp += "\n\n"
             num = 0
-</code>
-</pre>
+```
 
 #### 4. 토큰화
 
  영어의 경우, 띄어쓰기로 단어가 구분이 되기 때문에 일반적인 토큰화 라이브러리를 사용하여도 괜찮다. 그러나 한글의 경우, 조사, 어미, 접사 등이 있어 띄어쓰기로 정확한 의미 단위로 단어가 구분이 되지 않는다. 따라서 한국어 처리를 위해서는 단순 공백으로 단위를 구분하는 것이 아닌, 형태소 분석을 통해 단어들을 토큰화 해야 했다. 이를 위해 KoNLPY의 한국어 처리 패키지를 이용하여 형태소 분석을 진행하였다. 
  
-<pre>
-<code>
+```python
 pip install konlpy
 
 # 형태소 토큰화
@@ -343,8 +335,7 @@ okt = Okt()
 result = okt.morphs(text)
 print("단어의 개수: " , len(result))
 print(result)
-</code>
-</pre>
+```
 
 #### 5. LSTM 모델 구성 및 학습 진행
 
@@ -369,8 +360,7 @@ keras의 lstm 모델을 사용하기 위해서 단어 벡터화를 하던 중에
 
 79717개의 문장을 나누어서 문장 10000개가 들어가는 텍스트파일을 각각 만들었으며, 해당 코드는 아래에 있다.
 
-<pre>
-<code>
+```python
 f= open('/content/AI_novel_generator/total.txt', 'r')
 lines = f.readlines()
 f.close()
@@ -390,16 +380,13 @@ for line in lines:
         cnt = 0
 
     cnt = cnt +1
-    
-</code>
-</pre>
+```
 
 그러나 여전히 진행과정 중에서 세션이 종료되는 경우는 크게 1) 단어를 numpy 배열로 바꿀 때와, 2) 그걸 이용해서 모델을 학습할 때가 남아있었고, 문제가 발생하는 두 과정을 나누어서 진행해야겠다는 생각을 했다.
 
 그래서 1)에서 .npy 형식으로 데이터를 저장하고, 해당 파일을 이용해 2)를 실행시켜 보았다. 각 과정은 np.save와 np.load를 이용하였다.
 
-<pre>
-<code>
+```python
 x = np.zeros((len(sentences), maxlen, len(chars)), dtype=np.bool)
 y = np.zeros((len(sentences), len(chars)), dtype=np.bool)
 for i, sentence in enumerate(sentences):
@@ -408,20 +395,15 @@ for i, sentence in enumerate(sentences):
     y[i, char_indices[next_chars[i]]] = 1
 np.save('/content/list_x1', x)
 np.save('/content/list_y1', y)
-</code>
-</pre>
-
-<pre>
-<code>
+```
+```python
 x = np.load('/content/list_x1.npy')
 y = np.load('/content/list_y1.npy')
-</code>
-</pre>
+```
 
 데이터를 나누어 학습시키고, 학습과정을 나눠서 진행했던 코드 전문은 다음과 같다.
 
-<pre>
-<code>
+```python
 f= open('/content/AI_novel_generator/total.txt', 'r')
 lines = f.readlines()
 f.close()
@@ -450,11 +432,8 @@ for i, sentence in enumerate(sentences):
     y[i, char_indices[next_chars[i]]] = 1
 np.save('/content/list_x1', x)
 np.save('/content/list_y1', y)
-</code>
-</pre>
-
-<pre>
-<code>
+```
+```python
 from tensorflow import keras
 from tensorflow.keras import layers
 
@@ -531,8 +510,7 @@ for epoch in range(epochs):
 
         print("...Generated: ", generated)
         print()
-</code>
-</pre>
+```
 
 ### [5] 구현 결과
 
